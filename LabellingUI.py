@@ -1,53 +1,56 @@
 from tkinter import *
-import atexit
 
-# The functions __onExit, __onReturnKey, __onLeftKey, __onRightKey shall be overloaded to provide the
+
+# The functions __onReturnKey, __onLeftKey, __onRightKey shall be overloaded to provide the
 # functionality that is specific to the data format
 # This class only takes care of the UI part
 class LabellingUI():
     def __init__(self, dataset_name, n_top_items, n_mid_items, categories):
         self.__setLook()
-        self.__dataname = dataset_name
+        self._dataname = dataset_name
         self.__ntopitems = n_top_items
         self.__nmiditems = n_mid_items
         self.__cats = categories
-
         self.__setupMainWindow()
         self.__setupTopSection()
         self.__setupBottomSection()
         self.__setupMidSection()
-        self.__bindKeys()
-        atexit.register(self.__onExit)
+
+    def __enter__(self, *args):
+        pass
+
+    def __exit__(self, *args):
+        pass
 
 
     def __setupMainWindow(self):
         self.__mainWindow = Tk()
         self.__mainWindow.geometry("1200x1000")
-        self.__mainWindow.title("Labelling Data: " + str(self.__dataname))
+        self.__mainWindow.title("Labelling Data: " + str(self._dataname))
         self.__mainWindow.configure(background='black')
 
-    def __bindKeys(self):
-        self.__mainWindow.bind(sequence='<KeyPress-Return>', func=self.__onReturnKey)
-        self.__mainWindow.bind(sequence='<KeyPress-Right>', func=self.__onRightKey)
-        self.__mainWindow.bind(sequence='<KeyPress-Left>', func=self.__onLeftKey)
+
+    def _bindKeys(self,left,right,_return):
+        self.__mainWindow.bind(sequence='<KeyPress-Return>', func=_return)
+        self.__mainWindow.bind(sequence='<KeyPress-Right>', func=right)
+        self.__mainWindow.bind(sequence='<KeyPress-Left>', func=left)
 
 
-    def __onExit(self):
-        print("Exiting LabellingUI.")
-
-
-    def __onLeftKey(self, *args):
+    def _onLeftKey(self, *args):
         self.__deactivate(self.__activeCatIndex)
         self.__decreaseActiveIndex()
         self.__activate(self.__activeCatIndex)
 
 
-    def __onRightKey(self, *args):
+    def _onRightKey(self, *args):
         self.__deactivate(self.__activeCatIndex)
         self.__increaseActiveIndex()
         self.__activate(self.__activeCatIndex)
 
-    def __onReturnKey(self, *args):
+    def _getCurrentCat(self):
+        return self.__catlabels[self.__activeCatIndex].cget('text')
+
+    def _onReturnKey(self, *args):
         print("Category chosen: " + str(self.__catlabels[self.__activeCatIndex].cget('text')))
         self.__resetActivation()
 
@@ -66,7 +69,6 @@ class LabellingUI():
             label.pack(side=LEFT, padx=20)
             label.configure(bg='black', fg='white', font=(self.__FONT, self.__TEXTSIZETOP))
             self.__toplabels.append(label)
-            self.__toplabelTexts[i].set("TESTTEXT")
 
 
     def __setupBottomSection(self):
@@ -77,7 +79,7 @@ class LabellingUI():
         self.__catlabels=[]
         for c in self.__cats:
             self.__catlabels.append(Label(master=self.__categorySection, text=c))
-            self.__catlabels[-1].pack(side=LEFT, padx=20)
+            self.__catlabels[-1].pack(side=LEFT, padx=0)
             self.__catlabels[-1].configure(bg='black',fg='white', font=(self.__FONT,self.__TEXTSIZEBOT))
         self.__activeCatIndex = 0
         self.__resetActivation()
@@ -89,12 +91,14 @@ class LabellingUI():
         self.__activeCatIndex = mid_index
         self.__activate(mid_index)
 
+
     def __decreaseActiveIndex(self):
             max_i = len(self.__catlabels)
             if self.__activeCatIndex - 1 < 0:
                 self.__activeCatIndex = max_i - 1
             else:
                 self.__activeCatIndex -= 1
+
 
     def __increaseActiveIndex(self):
             max_i = len(self.__catlabels)
@@ -105,11 +109,11 @@ class LabellingUI():
 
 
     def __activate(self, index):
-        self.__catlabels[index].configure(fg=self.__ACTIVECOLOR, font=(self.__FONT,self.__TEXTSIZEBOT))
+        self.__catlabels[index].configure(bg=self.__ACTIVECOLOR, fg='black', font=(self.__FONT,self.__TEXTSIZEBOT))
+
 
     def __deactivate(self, index):
-        self.__catlabels[index].configure(fg='white', font=(self.__FONT,self.__TEXTSIZEBOT))
-
+        self.__catlabels[index].configure(bg='black', fg='white', font=(self.__FONT,self.__TEXTSIZEBOT))
 
 
     def __setupMidSection(self):
@@ -130,8 +134,7 @@ class LabellingUI():
             vlabel.pack(side=TOP)
             vlabel.configure(bg='black', fg='white', font=(self.__FONT, self.__TEXTSIZEMID2), justify='left', wraplength=1100, anchor='n')
             self.__midLabels.append({'desc':dlabel, 'val':vlabel})
-            self.__midLabelTexts[i]['desc'].set("DESCRIPTOR")
-            self.__midLabelTexts[i]['val'].set("VALUE")
+
 
 
     def __setLook(self):
@@ -140,7 +143,7 @@ class LabellingUI():
         self.__TEXTSIZEMID1 = 15
         self.__TEXTSIZEMID2 = 14
         self.__TEXTSIZEBOT = 18
-        self.__ACTIVECOLOR = '#E0F90F'
+        self.__ACTIVECOLOR = '#DA3054'
 
 
     def run(self):
@@ -149,16 +152,19 @@ class LabellingUI():
 
 
     def set_tops(self, descriptors,values):
-        for t in self.__toplabelTexts:
-            t.set(str(descriptors.pop(0))+ ": " + str(values.pop(0)))
+        for i in range(len(self.__toplabelTexts)):
+            self.__toplabelTexts[i].set(str(descriptors[i])+ ": " + str(values[i]))
+
 
     def set_mids(self, descriptors, values):
-        for m in self.__midLabelTexts:
-            m['desc'].set(str(descriptors.pop(0)).upper()+':')
-            m['val'].set(self.__text_replacements(str(values.pop(0))))
+        for i in range(len(self.__midLabelTexts)):
+            self.__midLabelTexts[i]['desc'].set(str(descriptors[i]).upper()+':')
+            self.__midLabelTexts[i]['val'].set(self.__text_replacements(str(values[i])))
+
 
     def __text_replacements(self, text):
         return str.replace(text,"\n","")
+
 
 if __name__ == "__main__":
     with open("text.txt", 'r') as file:
