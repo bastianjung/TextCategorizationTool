@@ -25,16 +25,17 @@ class LabellingUI():
 
     def __setupMainWindow(self):
         self.__mainWindow = Tk()
+
         self.__mainWindow.geometry("1200x1000")
         self.__mainWindow.title("Labelling Data: " + str(self._dataname))
         self.__mainWindow.configure(background='black')
 
 
-    def _bindKeys(self,left,right,_return):
+    def _bindKeys(self,left,right,_return, back):
         self.__mainWindow.bind(sequence='<KeyPress-Return>', func=_return)
         self.__mainWindow.bind(sequence='<KeyPress-Right>', func=right)
         self.__mainWindow.bind(sequence='<KeyPress-Left>', func=left)
-
+        self.__mainWindow.bind(sequence='<KeyPress-b>',func=back)
 
     def _onLeftKey(self, *args):
         self.__deactivate(self.__activeCatIndex)
@@ -47,12 +48,36 @@ class LabellingUI():
         self.__increaseActiveIndex()
         self.__activate(self.__activeCatIndex)
 
-    def _getCurrentCat(self):
+    def _getActiveCat(self):
         return self.__catlabels[self.__activeCatIndex].cget('text')
 
-    def _onReturnKey(self, *args):
+
+    def _setActiveCat(self, value):
+        assert type(value) == str, type(value)
+        assert value in self.__cats, value
+        for index,cat in enumerate(self.__catlabels):
+            if cat.cget('text') == value:
+                self.__activate(index, color=self.__WRITTENCOLOR)
+                self.__activeCatIndex = index
+            else:
+                self.__deactivate(index)
+
+
+
+    def _onReturnKey(self, new_cat = None, *args):
         print("Category chosen: " + str(self.__catlabels[self.__activeCatIndex].cget('text')))
-        self.__resetActivation()
+        if new_cat in self.__cats:
+            self._setActiveCat(new_cat)
+        else:
+            self.__resetActivation()
+
+
+    def _onBackKey(self, new_cat=None,*args):
+        print("Going one step backwards...")
+        if new_cat in self.__cats:
+            self._setActiveCat(new_cat)
+        else:
+            self.__resetActivation()
 
 
     def __setupTopSection(self):
@@ -85,6 +110,8 @@ class LabellingUI():
         self.__resetActivation()
 
 
+
+
     def __resetActivation(self):
         mid_index = int((len(self.__catlabels)-1)/2)
         self.__deactivate(self.__activeCatIndex)
@@ -108,9 +135,10 @@ class LabellingUI():
                 self.__activeCatIndex += 1
 
 
-    def __activate(self, index):
-        self.__catlabels[index].configure(bg=self.__ACTIVECOLOR, fg='black', font=(self.__FONT,self.__TEXTSIZEBOT))
-
+    def __activate(self, index, color=None):
+        if color == None:
+            color = self.__ACTIVECOLOR
+        self.__catlabels[index].configure(bg=color, fg='black', font=(self.__FONT,self.__TEXTSIZEBOT))
 
     def __deactivate(self, index):
         self.__catlabels[index].configure(bg='black', fg='white', font=(self.__FONT,self.__TEXTSIZEBOT))
@@ -139,11 +167,14 @@ class LabellingUI():
 
     def __setLook(self):
         self.__FONT = 'Helvetica'
-        self.__TEXTSIZETOP = 18
+        self.__TEXTSIZETOP = 16
         self.__TEXTSIZEMID1 = 15
         self.__TEXTSIZEMID2 = 14
         self.__TEXTSIZEBOT = 18
         self.__ACTIVECOLOR = '#DA3054'
+        self.__WRITTENCOLOR = '#' \
+                              '' \
+                              '7BBCDF'
 
 
     def run(self):
@@ -152,14 +183,14 @@ class LabellingUI():
 
 
     def set_tops(self, descriptors,values):
-        for i in range(len(self.__toplabelTexts)):
-            self.__toplabelTexts[i].set(str(descriptors[i])+ ": " + str(values[i]))
+        for i,label in enumerate(self.__toplabelTexts):
+            label.set(str(descriptors[i])+ ": " + str(values[i]))
 
 
     def set_mids(self, descriptors, values):
-        for i in range(len(self.__midLabelTexts)):
-            self.__midLabelTexts[i]['desc'].set(str(descriptors[i]).upper()+':')
-            self.__midLabelTexts[i]['val'].set(self.__text_replacements(str(values[i])))
+        for i,label in enumerate(self.__midLabelTexts):
+            label['desc'].set(str(descriptors[i]).upper()+':')
+            label['val'].set(self.__text_replacements(str(values[i])))
 
 
     def __text_replacements(self, text):

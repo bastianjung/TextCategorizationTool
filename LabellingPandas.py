@@ -17,7 +17,7 @@ class LabelPandas(ui.LabellingUI):
         self.__midCols = mid_columns
 
         super(LabelPandas, self).__init__(name, n_top, n_mid, categories)
-        self._bindKeys(self._onLeftKey, self._onRightKey, self.__onReturnKey)
+        self._bindKeys(self._onLeftKey, self._onRightKey, self.__onReturnKey, self.__onBackKey)
 
     def __exit__(self,*args):
         print("Saving the data on exit...")
@@ -31,15 +31,27 @@ class LabelPandas(ui.LabellingUI):
         self.__recordLabel()
         if self.__currentIndex +1 == self.__data.shape[0]:
             exit()
-        else:
-            self.__currentIndex += 1
+        self.__currentIndex += 1
+        self.__refreshUI()
+        # Pass the new category and set the category activation accordingly
+        super(LabelPandas,self)._onReturnKey(new_cat=self.__getCategoryOfCurrentRow())
+
+
+    def __getCategoryOfCurrentRow(self):
+        return self.__data.iloc[self.__currentIndex].loc[self.__newCol]
+
+    def __onBackKey(self,*args):
+        if self.__currentIndex -1 >=0:
+            self.__currentIndex -=1
             self.__refreshUI()
-            super(LabelPandas,self)._onReturnKey()
+            super(LabelPandas, self)._onBackKey(new_cat=self.__getCategoryOfCurrentRow())
+        else:
+            print("Reached first row already.")
 
     def __recordLabel(self):
-        cat = self._getCurrentCat()
+        cat = self._getActiveCat()
         self.__data.iloc[self.__currentIndex, -1] = cat
-        print(self.__data.iloc[self.__currentIndex][self.__newCol])
+        return cat
 
     def __refreshUI(self):
         mid_vals = self.__data.iloc[self.__currentIndex].loc[self.__midCols].tolist()
@@ -53,7 +65,7 @@ class LabelPandas(ui.LabellingUI):
 
 if __name__ == '__main__':
     df = pd.read_csv("example.csv")
-    cats = ["Sport","Politics","People","Technical", "Other"]
+    cats = ["Sport","Politics","People","Technical", "Other", "Society","Comedy","History","Scientific","Art"]
     # print(df.loc(axis=1)[["Link","Title"]])
 
     lp = LabelPandas("Wiki",['LastEdited','Link'], ['Title','Text'],cats, df)
