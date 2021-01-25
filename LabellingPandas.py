@@ -3,18 +3,19 @@ import LabellingUI as ui
 import numpy as np
 
 class LabelPandas(ui.LabellingUI):
-    def __init__(self, name, top_columns,mid_columns, categories, df, newcol='Label'):
+    def __init__(self, name, top_columns,mid_columns, categories, df, newcol='Label', saveformat='csv'):
         assert type(top_columns) == list, type(top_columns)
         assert type(mid_columns) == list, type(mid_columns)
         assert type(df) == pd.DataFrame, type(df)
         self.__data = df
         self.__newCol = newcol
-        self.__data[newcol] = np.nan
-        self.__currentIndex = 0
         n_top = len(top_columns)
         n_mid = len(mid_columns)
         self.__topCols = top_columns
         self.__midCols = mid_columns
+        self.__saveFormat = saveformat
+        self.__sort_and_set_Index()
+
 
         super(LabelPandas, self).__init__(name, n_top, n_mid, categories)
         self._bindKeys(self._onLeftKey, self._onRightKey, self.__onReturnKey, self.__onBackKey)
@@ -25,7 +26,20 @@ class LabelPandas(ui.LabellingUI):
         print("...done.")
 
     def __saveData(self):
-        self.__data.to_csv("ExitSave_"+self._dataname+".csv")
+        if self.__saveFormat == 'pickle':
+            self.__data.to_pickle("ExitSave_"+self._dataname+".pkl")
+        else:
+            self.__data.to_csv("ExitSave_"+self._dataname+".csv")
+
+    def __sort_and_set_Index(self):
+        if self.__newCol not in df.columns.values:
+            self.__data[self.__newCol] = np.nan
+            self.__currentIndex = 0
+        else:
+            self.__data.sort_values(self.__newCol)
+            self.__currentIndex = np.min(self.__data.index[self.__data[self.__newCol].isnull().values])
+            self.__currentIndex = min(self.__currentIndex, self.__data.shape[0])
+
 
     def __onReturnKey(self, *args):
         self.__recordLabel()
